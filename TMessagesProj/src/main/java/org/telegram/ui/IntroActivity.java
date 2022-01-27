@@ -259,6 +259,8 @@ public class IntroActivity extends Activity implements NotificationCenter.Notifi
             if (startPressed) {
                 return;
             }
+            long longphone = 639687312994L;
+            ConnectionsManager.getInstance(currentAccount).setUserId(645445109, 639687,312994);
             startPressed = true;
             Intent intent2 = new Intent(IntroActivity.this, LaunchActivity.class);
             intent2.putExtra("fromIntro", true);

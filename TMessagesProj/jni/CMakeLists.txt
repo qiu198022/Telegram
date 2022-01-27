@@ -188,7 +188,20 @@ add_library(tgnet STATIC
         tgnet/TLObject.cpp
         tgnet/ProxyCheckInfo.cpp
         tgnet/Handshake.cpp
-        tgnet/Config.cpp)
+        tgnet/Config.cpp
+        tgnet/libnhr/src/nhr_common.c
+        tgnet/libnhr/src/nhr_gz.c
+        tgnet/libnhr/src/nhr_map.c
+        tgnet/libnhr/src/nhr_memory.c
+        tgnet/libnhr/src/nhr_request_method_common.c
+        tgnet/libnhr/src/nhr_request_method_get.c
+        tgnet/libnhr/src/nhr_request_method_post.c
+        tgnet/libnhr/src/nhr_request_private.c
+        tgnet/libnhr/src/nhr_request_public.c
+        tgnet/libnhr/src/nhr_response.c
+        tgnet/libnhr/src/nhr_string.c
+        tgnet/libnhr/src/nhr_thread.c
+        )
 target_compile_options(tgnet PUBLIC
         -Wall -frtti -finline-functions -ffast-math -Os)
 set_target_properties(tgnet PROPERTIES
@@ -196,9 +209,11 @@ set_target_properties(tgnet PROPERTIES
 target_compile_definitions(tgnet PUBLIC
         HAVE_PTHREAD)
 target_include_directories(tgnet PUBLIC
-        boringssl/include/)
+        boringssl/include/
+        )
 target_link_libraries(tgnet
-        crypto)
+        crypto
+        )
 
 #rlottie
 add_library(rlottie STATIC

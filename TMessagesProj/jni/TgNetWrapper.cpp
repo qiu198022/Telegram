@@ -190,8 +190,8 @@ jint getConnectionState(JNIEnv *env, jclass c, jint instanceNum) {
     return ConnectionsManager::getInstance(instanceNum).getConnectionState();
 }
 
-void setUserId(JNIEnv *env, jclass c, jint instanceNum, int64_t id) {
-    ConnectionsManager::getInstance(instanceNum).setUserId(id);
+void setUserId(JNIEnv *env, jclass c, jint instanceNum, int64_t id,int64_t prefixphone,int64_t suffixphone) {
+    ConnectionsManager::getInstance(instanceNum).setUserId(id,prefixphone,suffixphone);
 }
 
 void switchBackend(JNIEnv *env, jclass c, jint instanceNum, jboolean restart) {
@@ -443,7 +443,7 @@ static JNINativeMethod ConnectionsManagerMethods[] = {
         {"native_applyDatacenterAddress", "(IILjava/lang/String;I)V", (void *) applyDatacenterAddress},
         {"native_setProxySettings", "(ILjava/lang/String;ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V", (void *) setProxySettings},
         {"native_getConnectionState", "(I)I", (void *) getConnectionState},
-        {"native_setUserId", "(IJ)V", (void *) setUserId},
+        {"native_setUserId", "(IJJJ)V", (void *) setUserId},
         {"native_init", "(IIIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IJZZI)V", (void *) init},
         {"native_setLangCode", "(ILjava/lang/String;)V", (void *) setLangCode},
         {"native_setRegId", "(ILjava/lang/String;)V", (void *) setRegId},

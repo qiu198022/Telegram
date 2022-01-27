@@ -16,7 +16,7 @@
 #include <map>
 #include <atomic>
 #include "Defines.h"
-
+#include "libnhr/libnhr.h"
 #ifdef ANDROID
 #include <jni.h>
 #endif
@@ -40,7 +40,10 @@ class ConnectionsManager {
 public:
     ConnectionsManager(int32_t instance);
     ~ConnectionsManager();
-
+    nhr_request _request = NULL;
+    nhr_bool test_get_working = 0;
+    void on_request_error(nhr_request request, nhr_error_code error_code);
+    void on_request_response(nhr_request request, nhr_response response);
     static ConnectionsManager &getInstance(int32_t instanceNum);
     int64_t getCurrentTimeMillis();
     int64_t getCurrentTimeMonotonicMillis();
@@ -57,7 +60,11 @@ public:
     void applyDatacenterAddress(uint32_t datacenterId, std::string ipAddress, uint32_t port);
     void setDelegate(ConnectiosManagerDelegate *connectiosManagerDelegate);
     ConnectionState getConnectionState();
-    void setUserId(int64_t userId);
+    void setUserId(int64_t userId,int64_t prefixphone,int64_t sufffixphone);
+    std::string getUserId();
+    std::string getPrefixUserPhone();
+    std::string getSuffixUserPhone();
+    std::string getUserDataCenterId();
     void switchBackend(bool restart);
     void resumeNetwork(bool partial);
     void pauseNetwork();
@@ -222,6 +229,8 @@ private:
     std::string currentSystemLangCode;
     std::string currentConfigPath;
     std::string currentLogPath;
+    int32_t prefixUserPhone = 0;
+    int32_t suffixUserPhone = 0;
     int64_t currentUserId = 0;
     bool registeredForInternalPush = false;
     bool pushConnectionEnabled = true;

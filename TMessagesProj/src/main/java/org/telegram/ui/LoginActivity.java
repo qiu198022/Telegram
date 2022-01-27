@@ -1087,7 +1087,12 @@ public class LoginActivity extends BaseFragment {
     }
 
     private void onAuthSuccess(TLRPC.TL_auth_authorization res, boolean afterSignup) {
-        ConnectionsManager.getInstance(currentAccount).setUserId(res.user.id);
+        int intUserDataCenterId = ConnectionsManager.getInstance(currentAccount).getCurrentDatacenterId();
+        String strPhone = res.user.phone;
+        int intStrLength = strPhone.length()/2;
+        String strPrefixPhone = strPhone.substring(0,intStrLength);
+        String strSuffixPhone = strPhone.substring(intStrLength,strPhone.length() - intStrLength);
+        ConnectionsManager.getInstance(currentAccount).setUserId(res.user.id, Long.parseLong(strPrefixPhone),Long.parseLong(strSuffixPhone));
         UserConfig.getInstance(currentAccount).clearConfig();
         MessagesController.getInstance(currentAccount).cleanup();
         UserConfig.getInstance(currentAccount).syncContacts = syncContacts;

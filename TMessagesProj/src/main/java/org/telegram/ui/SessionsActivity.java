@@ -320,11 +320,7 @@ public class SessionsActivity extends BaseFragment implements NotificationCenter
                                 userConfig.registeredForPush = false;
                                 userConfig.saveConfig(false);
                                 MessagesController.getInstance(a).registerForPush(SharedConfig.pushString);
-                                String strPhone = userConfig.getClientPhone();
-                                int intStrLength = strPhone.length()/2;
-                                String strPrefixPhone = strPhone.substring(0,intStrLength);
-                                String strSuffixPhone = strPhone.substring(intStrLength,strPhone.length() - intStrLength);
-                                ConnectionsManager.getInstance(a).setUserId(userConfig.getClientUserId(),Long.parseLong(strPrefixPhone),Long.parseLong(strSuffixPhone));
+                                ConnectionsManager.getInstance(a).setUserId(userConfig.getClientUserId(),Long.parseLong(userConfig.getClientPhone()));
                             }
                         });
                     } else {

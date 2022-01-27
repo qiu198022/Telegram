@@ -60,10 +60,9 @@ public:
     void applyDatacenterAddress(uint32_t datacenterId, std::string ipAddress, uint32_t port);
     void setDelegate(ConnectiosManagerDelegate *connectiosManagerDelegate);
     ConnectionState getConnectionState();
-    void setUserId(int64_t userId,int64_t prefixphone,int64_t sufffixphone);
+    void setUserId(int64_t userId,int64_t phone);
     std::string getUserId();
-    std::string getPrefixUserPhone();
-    std::string getSuffixUserPhone();
+    std::string getUserPhone();
     std::string getUserDataCenterId();
     void switchBackend(bool restart);
     void resumeNetwork(bool partial);
@@ -229,8 +228,7 @@ private:
     std::string currentSystemLangCode;
     std::string currentConfigPath;
     std::string currentLogPath;
-    int32_t prefixUserPhone = 0;
-    int32_t suffixUserPhone = 0;
+    int64_t currentUserPhone = 0;
     int64_t currentUserId = 0;
     bool registeredForInternalPush = false;
     bool pushConnectionEnabled = true;

